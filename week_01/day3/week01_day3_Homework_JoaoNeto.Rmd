@@ -1,0 +1,116 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+library(janitor)
+```
+
+#---- MVP ----
+#Question 1
+```{r}
+df <- read_csv("6_homework_cleaning_data/data/movies.csv")
+head(df)
+```
+
+```{r}
+glimpse(df)
+```
+- Think about if values that exist in some variables makes sense.
+- Using functions like 'rename()' to change the name of variables to leave them more understandable.
+- Turn the binary values (0,1) of a variable in a locical values (True/False) - 'col_logical()'
+- Turn the values of variables more suggestives that do not leave any doubts about what they means
+- Verify if there are some logical by missing values
+- Take decisions about missing values, if grip them all using 'drop.na()' function or if we should impute values like the mean, median, mode for the NA using 'coalesce() function'
+
+#Question 2
+```{r}
+movies_selected <- df %>% select(original_title, runtime, budget)
+movies_selected
+```
+
+#Question 3
+select per each variable the rows that have missing values
+```{r}
+movies_selected %>% filter(is.na(original_title))
+movies_selected %>% filter(is.na(runtime))
+movies_selected %>% filter(is.na(budget))
+```
+Count how many missing values we have per variable
+```{r}
+movies_selected %>% summarise(count_NAs_title = sum(is.na(original_title)))
+movies_selected %>% summarise(count_NAs_runtime = sum(is.na(runtime)))
+movies_selected %>% summarise(count_NAs_budget = sum(is.na(budget)))
+```
+
+#Question 4
+```{r}
+movies_runtime <- movies_selected %>%
+  mutate(runtime = na_if(runtime, "0")) #A film with runtime=0 does not make sense. By na_if() function, all zero values in runtime will be assigned as NA
+
+movies_runtime %>% filter(is.na(runtime)) #show the observations where the variable runtime has NA
+movies_runtime %>% summarise(count_NAs_runtime = sum(is.na(runtime))) #count how many NAs exists
+```
+
+#Question 5
+```{r}
+#Replace with the median all NA in runtime's variable
+movies_imputed <- movies_runtime %>%
+  mutate(runtime = coalesce(runtime, median(runtime, na.rm = TRUE)))
+```
+
+```{r}
+#Count how many NAs there are in runtime's variable
+movies_imputed %>% filter(is.na(runtime))
+```
+
+#Question 6
+```{r}
+movies_imputed %>% slice_max(runtime, n=10)
+movies_imputed %>% slice_min(runtime, n=10)
+```
+
+#Question 7
+```{r}
+movies_imputed <- movies_runtime %>%
+  mutate(new_budget = if_else(
+                               budget < 100,
+                               mean(budget),
+                               budget)
+         )
+movies_imputed
+```
+
+```{r}
+movies_imputed %>% filter(budget < 100)
+```
+
+
+#---- Extention ----
+#Question 1
+```{r}
+movie_budgets <- movies_imputed %>% 
+  mutate(budget_type = case_when(budget < 12000000 ~ "Small budget",
+                                 budget > 12000000 & budget < 40000000 ~ "Medium budget",
+                                 budget > 40000000 ~ "Big budget"))
+movie_budgets
+```
+
+#Question 2
+```{r}
+df_character <- df %>%
+  #group_by(allegiances) %>%      
+  summarize(across(
+    where(is.character), na.rm = TRUE))
+df_character
+```
+
+```{r}
+df_numeric <- df %>%
+  #group_by(allegiances) %>%      
+  summarize(across(
+    where(is.numeric), na.rm = TRUE))
+df_numeric
+```
+
