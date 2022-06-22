@@ -1,0 +1,85 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+#Initialize ----
+```{r}
+library(tidyverse)
+```
+
+
+#Question 1 ----
+```{r}
+library(CodeClanData)
+df <- drinks_content
+head(df)
+```
+```{r}
+#An overall picture of dataset - Using glimpse() we can see the dimension of our dataset (dim()) the variable names (names()) and the variables types
+glimpse (df)
+```
+
+#Question 2 ----
+```{r}
+#Create a sub dataset just with the variables we need
+df_selected_var <- select(df,Beverage_category, Beverage, Beverage_prep,Calories)
+```
+
+```{r}
+#If there is any NA will be deleted
+drop_na(df_selected_var)
+```
+
+#Question 3 ----
+```{r}
+#Create a new variable called calorie_diff 
+df_calorie_diff <- mutate(df_selected_var, calories_diff = Calories-135)
+df_calorie_diff
+```
+```{r}
+df_sugar_cubes <- mutate(df_calorie_diff, sugar_cubes_above_10 = calories_diff / 10 > 0)
+df_sugar_cubes
+```
+
+#Question 4 ----
+```{r}
+grp_category <- group_by(df_calorie_diff, Beverage_category)
+summarised_category <- summarise(grp_category, mean_calories_category = mean(Calories))
+summarised_category
+```
+
+```{r}
+arrange(summarised_category, desc(mean_calories_category))
+```
+  The mean of calories by beverage category was sorted by descendent order, and this way we could find and conclued which categorie are most and the less calorified, there are:
+  - Top 3 with most calories (from higher to lower): Smoothies (282.22 cal.), Frappuccino Blended Coffee        (276.95 cal.) and Signature Espresso Drinks (250.00 cal.);
+  - The last 3 with less calories (from higher to lower): Classic Espresso Drinks (140.17 cal.), Shaken Iced     Beverages (114.44 cal.) and at the end we find the Coffee (4.25 cal.).
+
+#Question 5 ----
+```{r}
+grp_pre <- group_by(df_calorie_diff,Beverage_prep) 
+summarised_prep <- summarise(grp_pre, mean_calories_pre = mean(Calories))
+summarised_prep
+```
+
+#Question 6 ----
+```{r}
+mean_prep <- mean(pull(summarised_prep, mean_calories_pre))
+mean_prep
+```
+```{r}
+mutate(summarised_prep, calories_above_mean = mean_calories_pre > mean_prep)
+```
+
+#Question 7 ----
+```{r}
+grp_drink <- group_by(df_calorie_diff, Beverage, Beverage_category, Beverage_prep)
+summarised_drink <- summarise(grp_drink, drink_cal = sum(Calories))
+summarised_drink
+```
+```{r}
+arrange(summarised_drink, desc(drink_cal))
+```
+
