@@ -1,0 +1,169 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+#Libraries
+```{r}
+library(tidyverse)
+library(janitor)
+```
+
+#Load Data
+```{r}
+books <- read_csv("2_weekend_homework/data/books.csv")
+head(books)
+```
+
+#First contact with dataset
+```{r}
+view(books)       #investigate the variables/columns
+
+sum(is.na(books)) #Get total number of missing values
+
+summary(books)
+```
+
+```{r}
+books %>% 
+   summarise(across(.fns = ~ length(.x))) #number of observations/variable.
+```
+
+
+#Edit names
+```{r}
+books_renamed <- books_janitor_clean %>% 
+  rename("row_id"    = "rowid",
+         "isbn_13"  = "isbn13")
+
+names(books_renamed)
+```
+#Check nonconformities in variables
+```{r}
+# with summary() function it was possible to see that are books with a number 
+# of pages equal to zero what is not supposed.
+
+#Counting how many observations there are per number of pages. 
+books_renamed %>% 
+  group_by(num_pages) %>% 
+  summarise(grp_count = sum(n())) %>% 
+  slice_min(num_pages, n = 5)
+```
+
+Try to find some relations between number of pages and raking
+```{r}
+range_ratings <- books_renamed %>% 
+  filter(num_pages == 0) %>% 
+  summarise (range(ratings_count)) %>% 
+  pull()
+
+range_ratings
+
+
+#Comment:
+# Any relation looking for ratings_counts was find out for number of pages be equal 0. 
+# The range o values do not give us any conclusion.
+```
+```{r}
+#isbn_13 should have 13 digits and isbn 10 digits.
+#Here we verify if there are observations where the variable isbn13 as less than 13 digits and isbn with less than 10.
+library(stringr)
+books_renamed %>% 
+   summarise(count_isbn_13_less_13 = sum(str_length(isbn_13) == 13),
+             count_isbn_less_10    = sum(str_length(isbn)    == 10))
+```
+
+```{r}
+#The observation where the variable isbn is different of 10 digit, was deleted
+books_isbn <- books_renamed %>% 
+  filter(str_length(isbn) == 10)
+
+nrow(books_renamed) - nrow(books_isbn)
+dim(books_isbn)
+
+#As expected 1 row was deleted
+```
+#Missing Values
+```{r}
+sum(is.na(books)) #get the numbers of missing values (NA and NaN)
+
+books %>% 
+  summarise(across(.fns = ~ sum(is.na(.x))))
+
+#Comment: There is not missing values in all dataset
+```
+
+```{r}
+#Impute NA for all observations with number of pages equal to 0
+books_na <- books_isbn %>%
+  mutate(num_pages = na_if(num_pages, 0))
+```
+
+```{r}
+#As expected the number o NA is 76
+books_na %>% 
+  summarise(count = sum(is.na(num_pages))) %>% 
+  pull()
+```
+
+```{r}
+#Remove all NA
+books_final <- books_na %>% 
+  drop_na()
+
+
+nrow(books_na) - nrow(books_final)
+#Number of NA removed was 76 as expected. This values is the same of books with zero pages that there were in the begin
+```
+1. What five books have the highest `average_rating` ?
+```{r}
+books_renamed %>%
+  summarise(title, average_rating) %>% 
+  arrange(desc(average_rating)) %>% 
+  head(5)
+```
+
+2. Which book has the most `text_reviews` ?
+```{r}
+#The book with most text_reviews is the Twilight (Twilight #1) with 3.59.
+books_renamed %>%
+  arrange(text_reviews_count) %>% 
+  tail(1)
+```
+
+```{r}
+# Other way to answer 'Which book has the most `text_reviews` ?'
+books_renamed %>%
+  slice_max(text_reviews_count, n = 1)
+```
+
+3. Which book has the most ratings?
+```{r}
+#The book with the most rating is the Twilight (Twilight #1) with 4597666.
+books_renamed %>%
+  slice_max(ratings_count, n = 1)
+```
+
+4. Which publisher has the highest `average_rating`?
+```{r}
+#There are 22 publishers with the highest same average rating.
+books_renamed %>% 
+  slice_max(average_rating, n = 1) 
+```
+
+5. How many pages is the longest book for each `language_code`?
+```{r}
+#The book with more pages is the The Complete Aubrey/Maturin Novels (5 Volumes)
+#with 6576 pages.
+books_renamed %>% 
+  slice_max(num_pages, n = 1) 
+```
+
+6. What is the highest rated book for each `language_code`?
+```{r}
+books_renamed %>% 
+  select(language_code, ratings_count, title) %>% 
+  group_by(language_code) %>% 
+  summarise(high_rate = max(ratings_count))
+```
+
