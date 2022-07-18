@@ -1,0 +1,51 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+```{r}
+library(tidyverse)
+```
+
+```{r}
+disaster_clean <- read_csv(here::here("3_extra_practice_open_ended_cleaning_task/clean_data/disaster_clean.csv"))
+```
+#What was the greatest disaster of all time by total deaths?
+```{r}
+disaster_clean %>% 
+  select(country_name, disaster_type, country_name, total_deaths) %>% 
+  slice_max(total_deaths, n = 5)
+```
+#Which country has had the highest total people affected by disasters?
+```{r}
+disaster_clean %>% 
+  group_by(country_name) %>% 
+  summarise(highest_total_affected = sum(total_affected)) %>% 
+  slice_max(highest_total_affected , n = 1)
+```
+
+
+#What are the top 5 countries for total number of disasters?
+```{r}
+disaster_clean %>% 
+  group_by(country_name) %>% 
+  summarise(nr_disasters = sum(n())) %>% 
+  slice_max(nr_disasters, n = 5)
+```
+
+#What is the greatest disaster in the last 5 years of the data, by total deaths?
+```{r}
+disaster_clean %>%
+  select(year, country_name, disaster_type, total_deaths) %>% 
+  filter(year >= 2010) %>% 
+  slice_max(total_deaths, n = 1)
+```
+
+#What were the top 10 years that had the most people dying from earthquakes?
+```{r}
+disaster_clean %>%
+  filter(disaster_type == "Earthquake") %>%
+  group_by(year) %>% 
+  summarise(deaths_earthquake_per_year = sum(total_deaths)) %>% 
+  slice_max(deaths_earthquake_per_year, n = 10)
+```
+
