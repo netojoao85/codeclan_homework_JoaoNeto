@@ -1,0 +1,181 @@
+---
+title: "Probability homework"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+    css: ../../../styles.css
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, messages = FALSE, fig.align = 'center')
+```
+
+
+# MVP
+
+## The Titanic
+```{r, message = FALSE}
+library(prob)
+library(gtools)
+library(tidyverse)
+```
+
+
+```{r}
+titanic <- read_csv("data/titanic.csv")
+```
+
+```{r}
+class_values <- titanic %>% 
+  distinct(class)
+```
+
+
+```{r}
+#create a logical variable to distinguish passengers(FALSE) and crew members (TRUE)
+titanic_class <- titanic %>% 
+  mutate(crew_or_not =
+          if_else(
+            class %in% c("1st", "2nd", "3rd"), 
+            FALSE,
+            TRUE
+          )) %>% 
+  select(survived, crew_or_not)
+
+titanic_class
+```
+
+```{r}
+titanic_prob_table <- titanic_class %>%
+  tabyl(survived, crew_or_not) %>%
+  adorn_totals(where = c("row", "col")) %>%
+  adorn_percentages(denominator = "all") %>%
+  adorn_title()
+
+titanic_prob_table
+```
+```{r}
+#one resolution could be looking for the values of table. P(A AND B) / P(B)
+survived_crew_table      <- 0.0956 / 0.4032
+survived_passenger_table <- 0.226 / 0.5967
+```
+
+
+```{r}
+#a second solution could be more manual
+survived_crew <- titanic_class %>% 
+  filter(crew_or_not == "TRUE") %>% 
+  summarise(prob_crew = sum(survived == "yes") / n())
+
+survived_passenger <- titanic_class %>% 
+  filter(crew_or_not == "FALSE") %>% 
+  summarise(prob_passenger = sum(survived == "yes") / n())
+
+survived_crew 
+survived_passenger
+```
+
+
+
+**MVP**  
+
+**Question 1.**  
+If I roll a six-sided dice once, what is the probability of getting a number less than 5?
+```{r}
+4/6
+```
+
+
+**Question 2.**  
+How many outcomes are there in the sample space of an experiment in which we toss three dice?
+```{r}
+tosscoin(3)
+
+#8 outcomes
+```
+
+
+
+**Question 3.**  
+In an experiment where we roll four dice:
+
+  * how many outcomes are in the event where the total of the four dice equals $5$, $6$ or $7$)?
+```{r}
+s_four_dice <- rolldie(4)
+
+s_four_dice %>% 
+  mutate(total = X1 + X2 + X3 + X4) %>% 
+  filter(total %in% c(5, 6, 7))
+```
+  
+  * what is the probability of this event?
+```{r}
+s_four_dice <- rolldie(4)
+event_prob <- s_four_dice %>% 
+  mutate(total = X1 + X2 + X3 + X4) %>% 
+  filter(total %in% c(5, 6, 7)) %>% 
+  nrow() / nrow(s_four_dice)
+  
+event_prob
+```
+  
+  * what assumptions do we apply in answering part ii?
+```{r}
+#34 possible results in a total of 2207
+```
+
+
+**Question 4.**  
+Five chairs are placed in a row in a room, along with five people of differing height. The people sit down randomly on the chairs. What is the probability that they sit in order of decreasing height, left to right?
+```{r}
+height <- c(170, 171, 172, 173, 174, 175)
+
+height_table <- as_tibble(permutations(n = 5, r = 5,
+                        v = height,
+                        repeats.allowed = FALSE))
+
+prob_order <- 1 / nrow(height_table) 
+prob_order
+```
+
+
+
+
+
+<details>
+<summary>**Hint**</summary>
+This is an arrangement where order matters. Of all the possible arrangements, how many are correct?
+</details>
+
+<br>
+**Question 5.**  
+I roll six dice:
+
+  * what is the probability I see the numbers 6, 5, 4, 3, 2 and 1 in order on the dice, left to right?
+  * what is the probability I see one each of the numbers 6, 5, 4, 3, 2 and 1 on the dice regardless of order?
+  
+<details>
+<summary>**Hint**</summary>
+Have a look at the `isin()` function in the `prob` package. For example, to `filter` all rows containing $6$, $1$, $2$ in that order, you could use `isin(., c(6, 1, 2), ordered = TRUE)`
+</details>
+
+<br>
+**Question 6.**  
+If I draw a single card from a 52-card deck, and it is black, what is the probability that its suit is spades? <br>
+
+<details>
+<summary>**Hints**</summary>
+
+* Investigate the `cards()` function in the `prob` package, if you'd like to try this in R (make a deck without jokers). 
+* You could think about adding your own `black_card` random variable to the sample space, which would be `TRUE` if the `suit` is 'Spade' or 'Club', and `FALSE` otherwise.
+</details>
+
+<br>
+
+# Extension
+
+Answer more than 4 consolidation questions
