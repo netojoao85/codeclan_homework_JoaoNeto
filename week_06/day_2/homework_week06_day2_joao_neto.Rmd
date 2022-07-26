@@ -112,3 +112,18 @@ items %>%
 between mean-sd3 and mean+sd3 should be 99,7%.
 
 
+#Extensions
+Investigate the use of the qqnorm() plot in R to determine whether data is normally distributed. What is a ‘quantile-quantile plot’? What do we expect to see in a qqnorm() plot if data is nearly normally distributed?
+```{r}
+samsung_selected <- items %>% 
+  filter(brand == "Samsung") %>% 
+  select(brand, rating)
+
+
+
+  qqnorm(samsung_selected$rating)
+  qqline(samsung_selected$rating)
+```
+qqnorm() give us the opportunity to know whether our dataset is normal distributed or not.
+To be a normal distribution dataset the values should be distributed in a linear way by a diagonal line plotted by qqline function, it means that the points plotted by qqnorm should follow that line.
+In our case we can see that it does not happen, so could say that our dataset does not follow a normal distribution.
