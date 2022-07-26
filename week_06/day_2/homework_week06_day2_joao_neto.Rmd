@@ -1,0 +1,114 @@
+---
+title: "Distributions homework"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+    css: ../../../styles.css
+  pdf_document: default
+---
+
+# MVP
+
+##Question 1.**  
+Load the data, `clean_names()` and explore it.
+```{r}
+library(tidyverse)
+library(janitor)
+library(skimr)
+```
+```{r}
+items <- read_csv("data/20190928-items.csv") %>% 
+  clean_names() 
+```
+
+
+
+
+```{r}
+items %>% 
+  summarise(across(.fns = ~sum(is.na(.x))))
+```
+
+
+
+##Question 2.**  
+Find the brand with the highest numbers of phones in the dataset.
+```{r}
+items %>% 
+  group_by(brand) %>% 
+  summarise(nr_phones = n()) %>% 
+  slice_max(nr_phones, n = 1)
+```
+
+
+##Question 3.**  
+For your top brand, plot the distribution of phone ratings as a probability density, overlaying a fitted normal distribution. Do you think the normal distribution provides a good model of these ratings?
+```{r}
+samsung_stats <- items %>%
+  filter(brand == "Samsung") %>%
+  summarise(
+    number = n(),
+    mean = mean(rating),
+    sd = sd(rating)
+  )
+```
+
+```{r}
+items %>% 
+  filter(brand == "Samsung") %>%
+  ggplot(aes(x = rating)) +
+  geom_histogram(aes(y = ..density..), fill = "#E69F00", col = "black", bins = 25) +
+  theme_bw() +
+  stat_function(
+    fun = dnorm, 
+    args = list(
+      mean = samsung_stats$mean, 
+      sd   = samsung_stats$sd
+    ),
+    col = "red",
+    size = 1
+  )
+```
+Continuous uniform distribution would be a good option. We have the boundary of rating defined, between 1 to 5, and within this range we can have any continuous value.
+
+
+
+##Question 4.**  
+We can be more quantitative in comparing the distribution of top brand ratings with a normal distribution. You calculated the `mean()` and `sd()` of your distribution in an earlier question. Use these values to calculate the *proportions* of ratings within one-, two- and three standard deviations of the mean. Compare these proportions with those you expect for a normal distribution. 
+```{r, eval=FALSE}
+items %>% 
+  filter(brand == "Samsung") %>% 
+  filter(rating >= samsung_stats$mean - samsung_stats$sd) %>%
+  filter(rating <= samsung_stats$mean + samsung_stats$sd) %>%
+  summarise(prop_within_1sd = n() / samsung_stats$number)
+```
+The proportion within the sd1 it is 79,3% that represent a value higher
+than should be expected (68%). This means that 79% of ratings for samsung are 
+between 2.888514 (mean-sd1) and 4.258086 (mean+sd1).
+
+```{r}
+items %>% 
+  filter(brand == "Samsung") %>% 
+  filter(rating >= samsung_stats$mean - samsung_stats$sd*2) %>%
+  filter(rating <= samsung_stats$mean + samsung_stats$sd*2) %>%
+  summarise(prop_within_2sd = n() / samsung_stats$number)
+```
+The proportion expected within sd2 would be 95%, however by samsung rating the 
+proportion of ratings within sd2 was 91,94%. It means 
+that 91,94% o values are within 2.203728 (mean-sd2 = 3.5733 + 0.6847859 *2)
+and 4.942872(mean+sd2 = 3.5733 + 0.6847859 *2).
+
+```{r}
+items %>% 
+  filter(brand == "Samsung") %>% 
+  filter(rating >= samsung_stats$mean - samsung_stats$sd*3) %>%
+  filter(rating <= samsung_stats$mean + samsung_stats$sd*3) %>%
+  summarise(prop_within_3sd = n() / samsung_stats$number)
+```
+97,98% of ratings of Samsung are within 1.518942 and 5. The proportion expected 
+between mean-sd3 and mean+sd3 should be 99,7%.
+
+
