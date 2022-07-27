@@ -1,0 +1,163 @@
+---
+title: "Homework - CIs"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+    css: ../../../styles.css
+  pdf_document: default
+---
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(infer)
+library(fastGraph)
+```
+
+
+# MVP ----------------
+## Task 1.**  
+Load the data again, `clean_names()`, and re-familiarise yourself with it
+```{r}
+ames <- read_csv("data/ames.csv") %>% 
+  clean_names()
+```
+
+```{r}
+glimpse(ames)
+```
+
+
+## Task 2.**  
+Investigate the distribution of `lot_area`. Is the distribution roughly normal? If not, what problems do you find?
+```{r}
+ames %>% 
+  ggplot()+
+  geom_histogram(aes(lot_area), bins = 40)
+```
+
+```{r}
+qqnorm(ames$lot_area)
+qqline(ames$lot_area)
+```
+```{r}
+library(car)
+qqPlot(ames$lot_area)
+```
+The distribution is not roughly normal. It looks like right Skewness.
+
+
+## Task 3.**  
+Compute and visualise a bootstrap sampling distribution for the `mean(lot_area)` of the sold houses.
+```{r}
+bootstrp_resample_lot_area <- ames %>% 
+  rep_sample_n(size = 2930, replace = TRUE, reps = 5000) %>% 
+  summarize(mean_lot_area   = mean(lot_area),
+            stderr_lot_area = sd(lot_area))
+
+bootstrp_resample_lot_area
+```
+```{r}
+bootstrp_resample_lot_area %>%
+  ggplot(aes(x = mean_lot_area)) +
+  geom_histogram(col = "white", fill = "steel blue", alpha = 0.7)
+```
+
+
+## Task 4.**  
+Use your bootstrap distribution to calculate a $95\%$ CI for `mean(lot_area)`, and visualise it on the distribution
+```{r}
+infer_resample <- ames %>%
+  specify(response = lot_area) %>%
+  generate(reps = 5000, type = "bootstrap") %>%
+  calculate(stat = "mean")
+
+infer_resample
+```
+```{r}
+infer_ci_95 <- infer_resample %>%
+  get_confidence_interval(level = 0.95, type = "percentile")
+infer_ci_95
+
+infer_resample %>%
+  visualise(bins = 30) +
+  shade_confidence_interval(endpoints = infer_ci_95)
+```
+
+
+## Task 5.**  
+You would like to know the `mean(lot_area)` of the sold houses with higher confidence. Calculate the $99\%$ CI for this variable (you can re-use your bootstrap distribution from above). Is it narrower or broader than the $95\%$ CI? Does that make sense?
+```{r}
+infer_ci_99 <- infer_resample %>%
+  get_confidence_interval(level = 0.99, type = "percentile")
+infer_ci_99
+
+
+infer_resample %>%
+  visualise(bins = 30) +
+  shade_confidence_interval(endpoints = infer_ci_99)
+```
+As the size of sample is the same, with the increase of CI by 99% there were a increase of width of CI. It is what were expected, for samples the same size the width of the CI increases as confidence level increases.
+
+
+## Task 6.**  
+Calculate the point estimate of the `mean(lot_area)`
+```{r}
+mean_infer <- infer_resample %>%
+  summarise(mean = mean(stat))
+
+mean_infer
+```
+
+# Extension ----------
+## Task 1.**  
+Calculate a point estimate and $95\%$ CI for the proportion of houses in the data built before 1920.  Does the number of `reps` you use matter? [Investigate `reps` from $200$ up to $50000$, memory of your laptop permitting].
+```{r}
+built_before_1920 <- ames %>% 
+  select(year_built, lot_area) %>% 
+  mutate(before_1920 = as.logical(year_built < 1920))
+
+
+bootstrap_resample_before_1920_200 <- built_before_1920 %>%
+  specify(response = before_1920, success = "TRUE") %>%
+  generate(reps = 200, type = "bootstrap") %>%
+  calculate(stat = "prop")
+
+bootstrap_resample_before_1920_50000 <- built_before_1920 %>%
+  specify(response = before_1920, success = "TRUE") %>%
+  generate(reps = 50000, type = "bootstrap") %>%
+  calculate(stat = "prop")
+
+```
+
+```{r}
+before_1920_ci_95_200 <- bootstrap_resample_before_1920_200 %>%
+  get_confidence_interval(level = 0.95, type = "percentile")
+before_1920_ci_95_200
+
+before_1920_ci_95_50000 <- bootstrap_resample_before_1920_50000 %>%
+  get_confidence_interval(level = 0.95, type = "percentile")
+before_1920_ci_95_50000
+
+
+bootstrap_resample_before_1920_200 %>%
+  visualise(bins = 30) +
+  shade_confidence_interval(endpoints = before_1920_ci_95_200)
+
+bootstrap_resample_before_1920_50000 %>%
+  visualise(bins = 30) +
+  shade_confidence_interval(endpoints = before_1920_ci_95_50000)
+
+```
+
+```{r}
+bootstrap_resample_before_1920_200 %>%
+  summarise(point_est = mean(stat))
+
+bootstrap_resample_before_1920_50000 %>%
+  summarise(point_est = mean(stat))
+```
+The number of `reps` matter. how much reps we use, will be generated an approximation of the sampling distribution from single sample.
