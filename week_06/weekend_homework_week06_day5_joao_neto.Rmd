@@ -1,0 +1,368 @@
+---
+title: "Hypothesis tests & probability - homework"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+    css: ../../../styles.css
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, fig.align = 'center')
+```
+
+<hr>
+
+# MVP
+
+## Hypothesis testing - practical
+
+```{r, message = FALSE, warning=FALSE}
+library(tidyverse)
+library(ggplot2)
+data(msleep)
+```
+
+
+###**Question 1.**  
+Explore the dataset and familiarise yourself with it.
+```{r}
+msleep %>% 
+  glimpse()
+```
+
+```{r}
+library(skimr)
+
+msleep %>% 
+  skim()
+```
+
+```{r}
+
+skewness_sleep_total = skewness(msleep$sleep_total, type = 1)
+
+skewness_sleep_total
+```
+ Magnitude of Skewness	Classification
+ < 0.5	fairly symmetrical
+ 0.5 - 1.0	moderately skewed
+ > 1.0	highly skewed
+  
+
+
+```{r}
+msleep %>% 
+  ggplot(aes(sleep_total)) +
+  geom_histogram(color = "white", bins = 30)
+```
+```{r}
+skewness_sleep_total = skewness(msleep$sleep_total, type = 1)
+
+skewness_sleep_total
+
+# 'skewness_sleep_total' = 0.05 < 0.5, then in relation of Magnitude of Skewness	Classification, sleep total is fairly symmetrical
+```
+```{r}
+msleep %>%
+  ggplot(aes(y = 1, sleep_total)) +
+  geom_boxplot() +
+  geom_point(position = position_jitter(height = .2), color = 4, alpha = .5)
+```
+
+###**Question 2.**  
+Jabberwockies sleep for around 7 hours a night, on average. Perform an appropriate statistical test to determine whether the mean `sleep_total` in the sampled population of animal types differs from the typical value for jabberwockies.
+
+1 - Significance level
+```{r}
+a_Jabberwockies <- 0.05
+```
+
+2 - H0 vs H1
+$$
+H_0: \mu_{\ animals \ sleep \ total} = 7
+$$
+$$
+H_1: \mu_{\ animal \ sleep \ total}  \neq  7
+$$
+
+3 - sample statistic
+```{r}
+sample_statistic_Jabberwockies <- msleep %>% 
+  specify(response = sleep_total) %>%  #specify the the variables of interest 
+  calculate(stat = "mean")             #statistic of interest
+
+sample_statistic_Jabberwockies
+```
+
+4 - null sampling distribution
+```{r}
+null_distribution_Jabberwockies <- msleep %>% 
+  specify(response = sleep_total) %>% 
+  hypothesize(null = "point", mu = 7) %>% 
+  generate(reps = 10000, type = "bootstrap") %>% 
+  calculate(stat = "mean")
+```
+
+5 - p_value & visualize
+```{r}
+#p_value -------------------------------------------------------------
+p_value <- null_distribution %>% 
+  get_p_value(obs_stat = sample_statistic_Jabberwockies, direction = "both")
+
+
+
+# visualize p_value ---------------------------------------------------
+null_distribution %>% 
+  visualise(bins = 30) +
+  shade_p_value(obs_stat = sample_statistic_Jabberwockies, direction = "both")
+```
+
+
+###**Question 3.**  
+Perform an appropriate statistical test to determine whether omnivores sleep for significantly longer than herbivores, on average.
+
+1 - Decide significance level
+```{r}
+   a_q3 <- 0.05
+```
+
+
+2 - H0 vs H1
+$$
+H_0: \mu_{\ omnivores \ sleep \ total} - \mu_{\ herbivores \ sleep \ total} = 0
+$$
+$$
+H_0: \mu_{\ omnivores \ sleep \ total} = \mu_{\ herbivores \ sleep \ total}
+$$
+
+$$
+H_1: \mu_{\ omnivores \ sleep \ total} - \mu_{\ herbivores \ sleep \ total} \ge 0
+$$
+$$
+H_1: \mu_{\ omnivores \ sleep \ total} \ge \mu_{\ herbivores \ sleep \ total}
+$$
+
+
+3 - calculate the sample statistic 
+```{r}
+# mean test
+sample_statistic_omni <- msleep %>% 
+  filter(vore == "omni") %>% 
+  specify(response = sleep_total) %>%  #specify the the variables of interest 
+  calculate(stat = "mean") #statistic of interest
+  
+sample_statistic_herbi <- msleep %>% 
+  filter(vore == "herbi") %>% 
+  specify(response = sleep_total) %>%  #specify the the variables of interest 
+  calculate(stat = "mean") #statistic of interest
+
+bind_rows(c("omni" = sample_statistic_omni , "herbi" = sample_statistic_herbi))
+```
+
+4 - null sample distribution
+```{r}
+null_distribution_q3 <- msleep %>%
+  filter(vore == "omni") %>% 
+  specify(response = sleep_total) %>% 
+  hypothesize(null = "point", mu = 9.509375) %>% 
+  generate(reps = 10000, type = "bootstrap") %>% 
+  calculate(stat = "mean")
+
+null_distribution_q3
+```
+
+
+5 - p_value
+```{r}
+p_value_q3 <- null_distribution_q3 %>% 
+  get_p_value(obs_stat = sample_statistic_omni$stat, direction = "right")
+
+p_value_q3
+```
+
+6 - visualize p_value
+```{r}
+null_distribution_q3 %>% 
+  visualise(bins = 30) +
+  shade_p_value(obs_stat = sample_statistic, direction = "right")
+```
+
+
+
+###**Question 4. **
+Perform an appropriate statistical test to determine whether the proportion of domesticated animal types in the population of animal types is greater than $5\%$.
+
+1 - Decide significance level
+```{r}
+a_q4 <- 0.05
+```
+
+2 - H0 vs H1
+$$
+H_0: \pi_{\ domestic \ animals \ proportion}  = 0.05
+$$
+
+$$
+H_1: \pi_{\ domestic \ animals \ proportion}  > 0.05
+$$
+
+
+3 - calculate the sample statistic 
+```{r}
+msleep_domesticate <- msleep %>% 
+  mutate(is_domesticate = if_else(conservation == "domesticated", TRUE, FALSE)) %>% 
+  filter(!is.na(is_domesticate))
+
+
+sample_statistic_domesticate <- msleep_domesticate %>% 
+  specify(response = is_domesticate, success = "TRUE") %>% 
+  calculate(stat = "prop")
+
+sample_statistic_domesticate
+```
+
+4 - null sample distribution
+```{r}
+null_distribution_domesticate <-  msleep_domesticate %>% 
+  specify(response = is_domesticate, success = "TRUE") %>% 
+  hypothesize(null = "point", p = 0.05) %>% 
+  generate(reps = 10000, type = "draw") %>% 
+  calculate(stat = "prop")
+
+null_distribution_domesticate
+```
+5 - p_value & visualizd
+```{r}
+p_value_domesticate <- null_distribution_domesticate %>% 
+  get_p_value(obs_stat = sample_statistic_domesticate, direction = "right")
+  
+
+null_distribution_domesticate %>% 
+  visualise(bins = 10) +
+  shade_p_value(obs_stat = sample_statistic_domesticate, direction = "right")
+
+```
+
+
+##Hypothesis testing - Defining the Hypothesis 
+
+For the following three business problems write out:
+
+* What kind of test you would use  
+*  $H_0$ and $H_a$ in **both** mathematical notation and in words. 
+* Also state the method you would use to generate the null distribution (bootstrap, permutation or simulation). 
+
+
+
+###**Question 1.**  
+You work for a independent coffee shop. The boss tells you that she thinks that around $40\%$ of people in the town (population $30,000$) know of the coffee shop, but you are skeptical of the estimate. You conduct a random survey of $200$ people in the town, asking if respondents are aware of your coffee shop. You want to use the sample to test the hypothesis that $40\%$ or more of the town's population have heard of the coffee shop. 
+
+> Porportion test
+
+H0: Propotion of people who know the coffee shop in the town is equal to 40%
+$$
+H_0: \pi_{\ people \ meet \ the \ coffee} = 0.4
+$$
+
+H1: Propotion of people who know the coffee in the town is equal or greather than 40%
+$$
+H_1: \pi_{\ people \ meet \ the \ coffee} \ge 0.4
+$$
+
+>null_distribution<- data_set %>% 
+  specify(response = , success = ) %>% 
+  hypothesize(null = "point", p = 0.4) %>% 
+  generate(reps = 10000, type = "draw") %>% 
+  calculate(stat = "prop")
+
+
+
+###**Question 2.**  
+You work for a website design company and have performed an **A/B test** on the position of a banner on a website promoting a particular item. 
+<br><br>
+<div class='emphasis'>
+**A/B testing** 
+A method comparing two versions of a web page, email, flyer or other marketing device against each other to determine which version performs better. As it is essentially a controlled experiment, the design should try to ensure that the groups experiencing both versions of the marketing device are equivalent and representative of the population.
+ 
+You selected five days at random last month and then randomly selected $200$ of each sampled day's users into group $A$ and another $200$ of that day's users into group $B$. Group $A$ continued to be shown the banner at the right hand side of the webpage (its usual position) while group $B$ was shown the banner at the top of the page. You monitored each sampled user's interactions with the website, in particular the 'click through rate' (CTR) on the banner, i.e. what proportion of sampled users clicked on the banner. You want to use the sampled data to test the hypothesis that website users overall are more likely to click on the banner if positioned at the top of the page 
+
+> Proportion test
+
+H0: There are not preference differences between users from groupA and groupB to click on the banner 
+                                         or
+H0: There are not relation between the number of clicks and the position of banner
+$$
+H_0: \pi_{\ groupA \ clicked \ on \ banner} - \pi_{\ groupB \ clicked \ on \ banner} = 0
+$$
+$$
+H_1: \pi_{\ groupA \ clicked \ on \ banner} - \pi_{\ groupB \ clicked \ on \ banner} \neq 0
+
+$$
+>null_distribution <- dat_set %>% 
+  specify() %>% 
+  hypothesize(null = "independence") %>% 
+  generate(reps = 10000, type = "permute") %>% 
+  calculate(stat = "diff in means", order = c())
+
+
+###**Question 3.**  
+You work as an analyst for a car manufacturing company - they have specific standards they must meet for standards and regulation purposes. You have been asked to check the quality control of the manufacture of a particular car part. You have been given data on a sample of $200$ parts produced over the period of a week (the sampled parts were pulled at random from the production line and measured: the factory produced a lot more than $200$ parts that week). The specification of the part stipulates a width of $145\textrm{mm}$, and the manufacturing process is said to have 'drifted' if the mean width of parts differs significantly from $145\textrm{mm}$. You want to use the sampled measurements to test whether the process overall has drifted.    
+
+> mean test
+
+H0: The width of car part of our sample pass in quality control
+$$
+H_0: \mu_{\ width\ of \ car \ part} = 145mm
+$$
+H1: The width of car part of our sample do not pass in quality control
+$$
+H_1: \mu_{\ width\ of \ car \ part} \neq 145mm
+$$
+
+>null_distribution<- sample_data %>% 
+  specify(response = ) %>% 
+  hypothesize(null = "point", mu = 145) %>% 
+  generate(reps = 10000, type = "bootstrap") %>% 
+  calculate(stat = "mean")
+
+
+
+
+
+## Hypothesis Testing - Interpreting the results
+
+For the 3 business problems stated above, imagine we performed you got the following p-values (with the given significance levels) write out your interpretation of the results. 
+
+<br>
+
+###**Question 1.**  
+
+**Coffee shop problem**. Significance level: 0.05, calculated $p$-value: 0.07
+```{r}
+"p-value > significance leve => Not Reject HO"
+
+"p-value is higher than significance level, so there are a lack of suffecient evidence to reject null hypothesise (H0). Based on our sample, we do not have enough evidence that proportion of people that know the coffee is statiscally significantly differenre, less than or greather than 40%."
+```
+
+
+###**Question 2.**  
+**Website company problem**. Significance level: 0.01, $p$-value: 0.006
+```{r}
+"p-value < significance leve => Reject HO in favour of H1"
+
+"p-value is lower than significance level, so there are enough evidence in the sample to suggest that the sample proportion of clicks on banner from groupA and GroupB is  statiscally significantly different from, less, than or greather than the null value."
+```
+
+
+###**Question 3.**  
+
+**Manufacturing company problem**. Significance level: 0.05, $p$-value: 0.55
+```{r}
+"p-value > significance leve => Not Reject HO"
+
+"p-value is higher than significance level, so there are a lack of suffecient evidence to reject null hypothesise (H0). Based on our sample, we do not have enough evidence that mean of cart part is statiscally significantly differenre, less than or greather than 145mm."
+```
