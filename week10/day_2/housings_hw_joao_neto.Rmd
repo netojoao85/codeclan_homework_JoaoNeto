@@ -1,0 +1,129 @@
+---
+title: "Homework - features and elements of multiple regression"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+    css: ../../../styles.css
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+library(tidyverse)
+knitr::opts_chunk$set(echo = TRUE, fig.align = 'center')
+```
+
+# MVP
+
+```{r}
+library(tidyverse)
+library(janitor)
+```
+
+
+1. Load the `housing_prices.csv` data set and undertake an initial exploration of the data. You will find details on the data set on the relevant [Kaggle page](https://www.kaggle.com/camnugent/california-housing-prices)
+```{r}
+house_prices <- read_csv("data/housing_prices.csv") %>% 
+  clean_names()
+
+head(house_prices)
+```
+
+
+
+2. We expect the `total_rooms` of houses to be strongly correlated with `total_bedrooms`. Use `ggpairs()` to investigate correlations between these two variables.
+```{r}
+library(GGally)
+
+house_prices %>% 
+  select(total_rooms, total_bedrooms) %>% 
+  ggpairs()
+
+# There is a very strong positive correlation between the total of rooms and total of beds
+```
+
+
+3. So, we do find significant correlations. Let's drop `total_bedrooms` from the dataset, and use only `total_rooms` going forward.
+
+```{r}
+house_prices_rm_total_bedrooms <- house_prices %>% 
+  select(-total_bedrooms)
+
+head(house_prices_rm_total_bedrooms)
+```
+
+
+4. We are interested in developing a regression model for the `median_house_value` of a house in terms of the possible predictor variables in the dataset.
+
+  i. Use `ggpairs()` to investigate correlations between `median_house_value` and the predictors (this may take a while to run, don't worry, make coffee or something).
+```{r}
+house_prices_rm_total_bedrooms %>% 
+  ggpairs()
+
+# Just consider as a correlaction relevant between the median_house_value and median_income. There is a positive strong correlaction between both variables.
+
+# The correlation between median_house_value and the other variables are very week.
+```
+  
+
+  ii. Perform further `ggplot` visualisations of any significant correlations you find.
+```{r}
+house_prices_rm_total_bedrooms %>% 
+  # select(median_house_value, median_income) %>% 
+  ggplot() +
+  aes(y = median_house_value, x = median_income) +
+  geom_point() +
+  geom_smooth(method = "lm", se = FALSE)
+```
+
+
+5. Shortly we may try a regression model to fit the categorical predictor `ocean_proximity`. Investigate the level of `ocean_proximity` predictors. How many dummy variables do you expect to get from it?
+```{r}
+house_prices_rm_total_bedrooms %>% 
+  count(ocean_proximity)
+
+house_prices_rm_total_bedrooms %>% 
+  distinct(ocean_proximity)
+
+# It is expected to get 4 dummy variables from 
+```
+
+ 
+6. Start with simple linear regression. Regress `median_house_value` on `median_income` and check the regression diagnostics.
+```{r}
+library(mosaic)
+
+lm <- lm(formula = median_house_value ~ median_income,
+         data    = house_prices_rm_total_bedrooms)
+
+summary(lm)
+
+autoplot(lm)
+
+# The diagnostic plot seems reasonable..
+# The Residuals vs Fitted plot seems good having the values without variation and across zero, some deviation from normality in the high and lower quantile residuals in the Normal Q-Q plot, and good heteroscedasticity in the Scale-Location plot.
+
+# The relationship is statistically significant, as the p-value is less than a typical significance level of 0.05.
+```
+ 
+
+7. Add another predictor of your choice. Check your assumptions, diagnostics, and interpret the model.
+```{r}
+lm1 <- lm(formula = median_house_value ~ median_income + population,
+          data    = house_prices_rm_total_bedrooms)
+
+summary(lm1)
+
+autoplot(lm1)
+
+#Residuals vs Fitted and Scale-Location are ok, while Normal Q-Q in the higher and the lower residuals are a relative deviation.
+#p-value is significante to median_income, but it is not to population (significance level lower than 0.05)
+```
+
+```{r}
+coplot(formula = median_house_value ~ median_income | population, 
+       data    = house_prices_rm_total_bedrooms)
+```
+
