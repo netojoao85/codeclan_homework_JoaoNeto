@@ -1,0 +1,142 @@
+---
+title: "Homework Quiz"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+    css: ../../../styles.css
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(janitor)
+```
+
+
+1. I want to predict how well 6 year-olds are going to do in their final school exams. Using the following variables am I likely under-fitting, fitting well or over-fitting? Postcode, gender, reading level, score in maths test, date of birth, family income.
+```{r}
+# mod_underfit  = lm(6yr_old_grade = grade ~  reading_level)
+
+# modl_wellfit = lm(6yr_old_grade ~  reading_level + score_in_maths_test + family_income)
+
+# mod_overfit  = lm(6yr_old_grade ~  Postcode, gender + reading_level + score_in_maths_test + date_of_birth + family_income)
+```
+
+
+
+
+2. If I have two models, one with an AIC score of 34,902 and the other with an AIC score of 33,559 which model should I use?
+```{r}
+tibble(
+  model = c("first", "second"),
+  AIC   = c(34.902, 33.559))
+
+# - For AIC and BIC lower numbers are better.
+# - BIC tends to be more parsimonious than other measures, i.e. it tends to 
+#   select smaller mode
+```
+Should be used the second model because has the AIC lower than the first model.
+
+
+
+3. I have two models, the first with: r-squared: 0.44, adjusted r-squared: 0.43. The second with: r-squared: 0.47, adjusted r-squared: 0.41. Which one should I use?
+```{r}
+tibble(
+  model        = c("first", "second"),
+  r_squared    = c(0.44, 0.43),
+  adj_r_squared = c(0.47, 0.41))
+
+
+# Increase the number of parameters will always increase the r2, but will lead 
+# to over-fitting too, so think that should always select the model with the 
+# highest r2 value it is not correct.
+# 
+# There are plenty goodness-of-fit measures beyond r2 that tend to favour 
+# parsimonious models (models which included as few variables as necessary), 
+# are this measures:
+#    - Adjusted r2:                        larger values are better
+#    - Akaike information criterion (AIC): lower numbers are better.
+#    - Bayes information criterion (BIC):  lower numbers are better.
+
+
+
+# -----------------------------------------
+#         | adj_r^2  |   AIC    |    BIC
+# --------|----------|----------|----------
+# wellfit | 0.3072727| 25496.62 | 25522.07
+# --------|----------|----------|----------
+# overfit | 0.304378 | 25549.42 | 25824.29
+# -----------------------------------------
+# 
+# AIC is more penalising than adjusted r-squared, and BIC is more penalising than
+# AIC. So models will be smallest (i.e. fewest coefficients) with BIC, less small
+# with AIC, and largest with adjusted r-squared.
+```
+Considering that is not a simple linear regression and we have more than one 
+predictor, should be selected the second model that has the higher 
+adjust r squared
+
+
+
+4. I have a model with the following errors: RMSE error on test set: 10.3, RMSE error on training data: 10.4. Do you think this model is over-fitting?
+```{r}
+tibble(
+  model = c("first", "second"),
+  RMSE  = c(10.3, 10.4))
+
+
+# "The error is lower when predicting on the training data. This is what we’d 
+# expect, because we’ve used the training data to construct the model so our 
+# model will naturally work better on the training data."
+```
+The error on training data is higher than in test, so this model is over-fiting.
+
+
+5. How does k-fold validation work?
+```{r}
+# Splitting the data in k “folds” (10 is the usual normal value), and for each fold, is fitted on all the other data and test on that fold. Finally you measure average performance across all the folds.
+
+# Finally is measured the average performance across all the folds.
+```
+
+
+6. What is a validation set? When do you need one?
+```{r}
+# Is a set of data used neither in training nor to compare models against each 
+# other, and it should gives a final estimate of the expected performance of
+# the model. It should be used only once the finished model was selected.
+```
+
+
+
+7. Describe how backwards selection works.
+```{r}
+# Starts with all possible predictors, and in each step all predictors will be 
+# checked and will be removed the predictor that when removed has the lower 
+# impact on r squared value.
+```
+
+
+8. Describe how best subset selection works.
+```{r}
+# Best subset selection (or exhaustive search) is the best selection method 
+# (compared with forward and backward selection) if we want optimal models, 
+# although be a method computationally intensive and the effort of this 
+# algorithm increases exponentially with the number of predictors.
+
+# It works in a simple way, at each size of model, search all possible 
+# combinations of predictors for the best model (i.e. the model with highest r2)
+# of that size.
+```
+
+
+
+
+
