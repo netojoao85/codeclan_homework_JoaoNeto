@@ -1,0 +1,99 @@
+---
+title: "Clustering homework"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(broom)
+library(factoextra)
+```
+
+```{r}
+customers <-read_csv("../5_clustering_homework/data/mall_customers.csv") %>% 
+  clean_names()
+```
+
+```{r}
+customers %>% 
+  ggplot(aes(x = annual_income_k, 
+             y = spending_score_1_100)) +
+  geom_point()
+```
+
+
+
+```{r}
+customers_scale <- customers %>%
+  select(annual_income_k, spending_score_1_100) %>% 
+  mutate_all(scale)
+
+
+customers_scale %>%
+  as_tibble() %>%
+  pivot_longer(cols = everything(), 
+               names_to = "type", 
+               values_to = "value") %>% 
+  group_by(type) %>%
+  summarise(mean = round(mean(value)), 
+            sd = sd(value))
+```
+
+```{r}
+# elbow method
+fviz_nbclust(customers_scale, 
+             kmeans, 
+             method = "wss", 
+             nstart = 25)
+
+
+# silhouette coefficient
+fviz_nbclust(customers_scale, 
+             kmeans, 
+             method = "silhouette", 
+             nstart = 25)
+
+
+# gap-stat
+fviz_nbclust(customers_scale, 
+             kmeans, 
+             method = "gap_stat", 
+             nstart = 25, 
+             k.max = 10)
+
+```
+**elbow diagram:** The point at which the rate of change of the sum of squares begins to decline.
+                    Difficult to say exactly where happen, but it is 3 or 5
+**silhouette:** A value of k = 5 is the maximum  
+
+
+```{r}
+clustered <- kmeans(customers_scale, 
+                    centers = 5,
+                    nstart = 25)
+
+tidy(clustered, 
+     col.names = colnames(customers_scale))
+
+```
+```{r}
+clusters <- augment(clustered, customers)
+
+clusters %>% 
+  ggplot(aes(annual_income_k , spending_score_1_100, colour = .cluster)) +
+  geom_point() 
+```
+
+```{r}
+clusters %>% 
+  group_by(.cluster, gender) %>%
+  summarise(mean(annual_income_k), 
+            mean(spending_score_1_100))
+```
+
+
