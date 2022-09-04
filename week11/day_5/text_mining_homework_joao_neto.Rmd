@@ -1,0 +1,136 @@
+---
+title: "Text Mining Homework"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    df_print: paged
+    css: ../../../styles.css
+  pdf_document: default
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, eval = FALSE, fig.align = "center", message = FALSE, warning = FALSE)
+```
+
+# MVP
+
+Using the dataset `austen_books()` from the package `janeaustenr`:
+```{r}
+library(janeaustenr)
+library(tidyverse)
+library(tidytext)
+```
+
+1. Find the most common words in both Pride & Prejudice and Sense & Sensibility.
+```{r}
+prideprejudice_nostop_words <- tibble(
+  id   = seq_along(prideprejudice),
+  text = prideprejudice) %>% 
+  unnest_tokens(word, text) %>% 
+  anti_join(stop_words, by = "word") %>% 
+  count(word, sort = TRUE)
+
+
+sensesensibility_nostop_words <- tibble(
+  id   = seq_along(sensesensibility),
+  text = sensesensibility) %>% 
+  unnest_tokens(word, text) %>% 
+  anti_join(stop_words, by = "word")%>% 
+  count(word, sort = TRUE)
+```
+
+```{r}
+prideprejudice_nostop_words
+sensesensibility_nostop_words
+```
+
+
+2. Find the most common words in both Pride & Prejudice and Sense & Sensibility, not including stop words.
+```{r}
+prideprejudice_stop_words <- tibble(
+  id   = seq_along(prideprejudice),
+  text = prideprejudice) %>% 
+  unnest_tokens(word, text) %>% 
+  count(word, sort = TRUE)
+
+
+sensesensibility_stop_words <- tibble(
+  id   = seq_along(sensesensibility),
+  text = sensesensibility) %>% 
+  unnest_tokens(word, text) %>% 
+  count(word, sort = TRUE)
+```
+
+```{r}
+prideprejudice_stop_words
+sensesensibility_stop_words
+```
+
+
+3. Find the most common sentiment words in both Pride & Prejudice and Sense & Sensibility.
+```{r}
+prideprejudice_nostop_words_sentiments <- prideprejudice_nostop_words %>% 
+  left_join(get_sentiments("nrc")) %>% 
+  drop_na() %>% 
+  group_by(sentiment) %>% 
+  summarise(count_sentiment = n()) %>% 
+  arrange(desc(count_sentiment))
+
+
+sensesensibility_nostop_words_sentiments <- sensesensibility_nostop_words %>% 
+  left_join(get_sentiments("nrc")) %>% 
+  drop_na() %>% 
+  group_by(sentiment) %>% 
+  summarise(count_sentiment = n()) %>% 
+  arrange(desc(count_sentiment))
+```
+```{r}
+prideprejudice_nostop_words_sentiments
+sensesensibility_nostop_words_sentiments
+```
+
+
+# Extension
+
+Taking your results above. Can you create a plot which visualises the differences between the books?  
+```{r}
+titles <- c("Pride & Prejudice", 
+            "Sense & Sensibility")
+books <- list(prideprejudice,
+              sensesensibility)
+
+books <- books %>%
+  purrr::map_chr(paste, collapse = " ")
+str(books)
+
+plot_sentiments <- tibble(
+  title = titles,
+  text = books
+) %>%
+  unnest_tokens(word, text) %>% 
+  anti_join(stop_words, by = "word") %>% 
+  left_join(get_sentiments("nrc")) %>% 
+  drop_na() %>% 
+  group_by(title, sentiment) %>% 
+  summarise(count_sentiment = n()) %>% 
+  ggplot(aes(x = sentiment, y = count_sentiment, fill = title)) +
+  geom_col(position = "dodge") +
+  theme_minimal() +
+  theme(legend.position = "bottom") +
+  geom_text(aes(label = count_sentiment), 
+            position = position_dodge(0.9), 
+            vjust = -0.3, 
+            size = 3) +
+  labs(title = "Sentiments per book",
+       x = NULL, 
+       y = NULL)
+
+plot_sentiments
+```
+
+
+
+
